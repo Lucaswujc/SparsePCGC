@@ -18,12 +18,12 @@ from coder import BasicCoder2, LossyCoderSparse
 def test_sparse_lossless(ckptdir_low, ckptdir_high, filedir_list, voxel_size=1):
     model_low = PCCModel(stage=8, kernel_size=5, enc_type='pooling').to(device)
     assert os.path.exists(ckptdir_low)
-    ckpt = torch.load(ckptdir_low)
+    ckpt = torch.load(ckptdir_low, map_location=device)
     model_low.load_state_dict(ckpt['model'])
 
     model_high = PCCModel(stage=8, kernel_size=5, enc_type='pooling').to(device)
     assert os.path.exists(ckptdir_high)
-    ckpt = torch.load(ckptdir_high)
+    ckpt = torch.load(ckptdir_high, map_location=device)
     model_high.load_state_dict(ckpt['model'])
 
     basic_coder = BasicCoder2(model_low, model_high, device=device)
@@ -48,12 +48,12 @@ def test_sparse_lossless(ckptdir_low, ckptdir_high, filedir_list, voxel_size=1):
 def test_sparse_lossy(ckptdir_low, ckptdir_high, ckptdir_offset, filedir_list, mode='gpcc', offset=False):
     model_low = PCCModel(stage=8, kernel_size=5, enc_type='pooling').to(device)
     assert os.path.exists(ckptdir_low)
-    ckpt = torch.load(ckptdir_low)
+    ckpt = torch.load(ckptdir_low, map_location=device)
     model_low.load_state_dict(ckpt['model'])
 
     model_high = PCCModel(stage=8, kernel_size=5, enc_type='pooling').to(device)
     assert os.path.exists(ckptdir_high)
-    ckpt = torch.load(ckptdir_high)
+    ckpt = torch.load(ckptdir_high, map_location=device)
     model_high.load_state_dict(ckpt['model'])
 
     basic_coder = BasicCoder2(model_low, model_high, device=device)
@@ -61,7 +61,7 @@ def test_sparse_lossy(ckptdir_low, ckptdir_high, ckptdir_offset, filedir_list, m
     if offset:
         model_offset = OffsetModel(kernel_size=5).to(device)
         assert os.path.exists(ckptdir_offset)
-        ckpt = torch.load(ckptdir_offset)
+        ckpt = torch.load(ckptdir_offset, map_location=device)
         model_offset.load_state_dict(ckpt['model'])
     else:
         model_offset = None
@@ -147,12 +147,16 @@ if __name__ == '__main__':
     parser.add_argument("--resultdir",type=str, default='results')
     parser.add_argument("--offset", action="store_true", help="offset or not.")
     parser.add_argument("--prefix",type=str, default='ours_sparse')
+    parser.add_argument("--device", type=str, default='auto')
     args = parser.parse_args()
     args.outdir = os.path.join(rootdir, args.outdir, args.prefix)
     args.resultdir = os.path.join(rootdir, args.resultdir)
     os.makedirs(args.outdir, exist_ok=True)
     os.makedirs(args.resultdir, exist_ok=True)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if args.device !='auto': 
+        device = torch.device(args.device)
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     ################# test dataset ################# 
     filedir_list = sorted(glob.glob(os.path.join(args.filedir,'**', f'*.*'), recursive=True))
